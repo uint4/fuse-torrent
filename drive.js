@@ -212,9 +212,14 @@ module.exports = async function (src, dest, tmp) {
     }
   }
 
-  const opts = { force: true, mkdir: true, displayFolder: true, allowOther: true }
+  const opts = { force: true, mkdir: false, displayFolder: true }
   const fuse = new Fuse(dest, handlers, opts)
-  fuse.mount()
+  fuse.mount(function (err) {
+    console.log("fuse errors:", err)
+    fs.readdir(dest, function (err, buf) {
+      console.log(buf)
+    })
+  })
   console.log(`fuse-torrent ready: ${dest}`)
 
   var _engines = {}
