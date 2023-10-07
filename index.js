@@ -7,49 +7,6 @@ const drive = require('./drive.js')
 const dbFind = require('./db.js').dbFind
 const db = require('./db.js').db
 
-var argv = require('yargs')
-  .usage('Usage: $0 <command> [options]')
-  .command('add <torrentFile> [category]', 'Add torrent file to the DB', (yargs) => {
-    yargs
-      .positional('torrentFile', {
-        describe: 'torrent file',
-        type: 'string',
-        default: null
-      })
-  })
-  .command('list', 'List torrents in the DB')
-  .command('mount <path>', 'Mount torrents under specific path', (yargs) => {
-    yargs
-      .positional('path', {
-        describe: 'Path to mount the torrents',
-        type: 'string',
-        default: null
-      })
-      .demand('path')
-  })
-  .option('c', {
-    alias: 'cache-path',
-    description: 'Path for caching',
-    default: '/tmp'
-  })
-  .demandCommand()
-  .help('help')
-  .alias('h', 'help')
-  .argv
-
-const command = argv._[0]
-if (command === 'list') {
-  listTorrents()
-}
-
-if (command === 'add') {
-  addTorrent(argv.torrentFile, argv.category)
-}
-
-if (command === 'mount') {
-  mountTorrents()
-}
-
 async function listTorrents () {
   dbFind({}, (items) => {
     items.forEach(item => {
@@ -91,13 +48,7 @@ async function addTorrent (torrentFile, category) {
   })
 }
 
-function mountTorrents () {
-  let mount = argv.path
-  let cache = argv.cachePath
-  if (!mount) mount = '/tmp/data'
-  if (!cache) cache = '/tmp'
-  mount = fs.realpathSync(mount)
-  cache = fs.realpathSync(cache)
-
-  drive(mount, cache)
-}
+let src = process.env.BTFS_SRC;
+let dest = process.env.BTFS_DEST;
+let tmp = '/tmp'
+drive(src, dest, tmp)

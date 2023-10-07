@@ -2,13 +2,15 @@ const prettysize = require('prettysize')
 const Fuse = require('fuse-native')
 const torrentStream = require('torrent-stream')
 const path = require('path')
+const fs = require('fs');
+const readTorrent = require('read-torrent')
 
 const dbFind = require('./db.js').dbFind
 
 const ENOENT = Fuse.ENOENT
 const ZERO = 0
 
-module.exports = async function (mnt, tmp) {
+module.exports = async function (src, dest, tmp) {
   const ctime = new Date()
   const mtime = new Date()
   let uninterestedAt = null
@@ -16,33 +18,70 @@ module.exports = async function (mnt, tmp) {
   let items = []
   let sourceFiles = []
   let categories = []
+  let torrents = new Map()
   const files = {}
 
   async function refreshFiles () {
-    dbFind({}, (newItems) => {
-      newItems.forEach(function (item) {
-        if (item.category) {
-          item.path = path.join(item.category, item.name)
-        }
-      })
-      if (items !== newItems) {
-        items = newItems
-        categories = Array.from(new Set(
-          items.filter(function (item) { return item.category }).map(function (item) { return item.category })
-        ))
-        const newSourceFiles = []
-        items.forEach(function (item) {
-          const itemFiles = JSON.parse(item.metadata).files
-          itemFiles.forEach(function (file) {
-            if (item.category) {
-              file.path = path.join(item.category, file.path)
-            }
-            newSourceFiles.push(file)
-          })
-        })
-        sourceFiles = newSourceFiles
+    let newTorrents = fs.readdirSync(src, { recursive: true })
+
+    // Remove deleted torrents
+    items.forEach(function (item) {
+      if (!newTorrents.includes(item)) {
+        delete item
       }
     })
+
+    newTorrents.map(function (torrentFile) {
+      if (items.filter((torrent) => torrent.file == torrentFile).length == 0) {
+        readTorrent(path.join(src, torrentFile), function (err, torrent, raw) {
+          if (err) {
+            console.error(err.message)
+            process.exit(2)
+          }
+          const ts = torrentStream(raw)
+          ts.on('ready', async function () {
+            const files = ts.files.map((file) => {
+              return { path: file.path, length: file.length }
+            })
+            console.log('New Files:')
+            files.forEach(file => console.log(file))
+            const metadata = JSON.stringify({ files: files })
+  
+            let category = null
+            let split_torrent = torrentFile.split('/')
+            if (split_torrent.length == 2) {
+              category = split_torrent[0]
+            }
+      
+            const doc = {
+              file: torrentFile,
+              torrentFile: ts.metadata.toString('base64'),
+              name: ts.torrent.name,
+              infoHash: torrent.infoHash,
+              metadata: metadata,
+              category: category
+            }
+
+            items.push(doc)
+          })
+        })
+      }
+    })
+
+    categories = Array.from(new Set(
+      items.filter(function (item) { return item.category }).map(function (item) { return item.category })
+    ))
+    const newSourceFiles = []
+    items.forEach(function (item) {
+      const itemFiles = JSON.parse(item.metadata).files
+      itemFiles.forEach(function (file) {
+        if (item.category) {
+          file.path = path.join(item.category, file.path)
+        }
+        newSourceFiles.push(file)
+      })
+    })
+    sourceFiles = newSourceFiles
   }
 
   await refreshFiles()
@@ -169,9 +208,9 @@ module.exports = async function (mnt, tmp) {
   }
 
   const opts = { force: true, mkdir: true, displayFolder: true, allowOther: true }
-  const fuse = new Fuse(mnt, handlers, opts)
+  const fuse = new Fuse(dest, handlers, opts)
   fuse.mount()
-  console.log(`fuse-torrent ready: ${mnt}`)
+  console.log(`fuse-torrent ready: ${dest}`)
 
   var _engines = {}
   function engine (filePath) {
