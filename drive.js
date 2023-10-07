@@ -89,6 +89,7 @@ module.exports = async function (src, dest, tmp) {
 
   const handlers = {
     readdir: function (filePath, cb) {
+      console.log("readdir", filePath)
       filePath = filePath.slice(1)
 
       const uniq = {}
@@ -109,6 +110,7 @@ module.exports = async function (src, dest, tmp) {
       cb(ZERO, files)
     },
     getattr: function (filePath, cb) {
+      console.log("getattr", filePath)
       filePath = filePath.slice(1)
 
       const stat = {}
@@ -141,6 +143,7 @@ module.exports = async function (src, dest, tmp) {
     },
 
     open: function (filePath, flags, cb) {
+      console.log("open", filePath)
       filePath = filePath.slice(1)
 
       const file = find(filePath)
@@ -156,6 +159,7 @@ module.exports = async function (src, dest, tmp) {
     },
 
     release: function (filePath, handle, cb) {
+      console.log("release", filePath)
       filePath = filePath.slice(1)
 
       const fs = files[filePath] || []
@@ -168,6 +172,7 @@ module.exports = async function (src, dest, tmp) {
     },
 
     read: function (filePath, handle, buf, len, offset, cb) {
+      console.log("read", filePath)
       filePath = filePath.slice(1)
 
       const file = find(filePath)
@@ -214,6 +219,7 @@ module.exports = async function (src, dest, tmp) {
 
   var _engines = {}
   function engine (filePath) {
+    console.log("engine", filePath)
     const split = filePath.split('/')
     let name
     if (categories.find(function (cat) { return cat === split[0] })) {
@@ -280,6 +286,7 @@ module.exports = async function (src, dest, tmp) {
   }
 
   const findFromTorrent = function (filePath) {
+    console.log("findFromTorrent", filePath)
     const split = filePath.split('/')
     if (categories.find(function (cat) { return cat === split[0] })) {
       filePath = split.slice(1, split.length).join('/')
