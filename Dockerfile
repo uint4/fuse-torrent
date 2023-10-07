@@ -4,6 +4,7 @@ FROM node:current-alpine
 # Install dependencies
 RUN apk update -U
 RUN apk add fuse python3
+RUN sed -i 's/#user_allow_other/user_allow_other/' /etc/fuse.conf
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
