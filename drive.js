@@ -59,7 +59,8 @@ module.exports = async function (src, dest, tmp) {
               name: ts.torrent.name,
               infoHash: torrent.infoHash,
               metadata: metadata,
-              category: category
+              category: category,
+              trackers: torrent.announce,
             }
 
             items.push(doc)
@@ -233,7 +234,7 @@ module.exports = async function (src, dest, tmp) {
         return term === name
       })
 
-      let _engine = torrentStream({ infoHash: target.infoHash }, { tmp: tmp })
+      let _engine = torrentStream({ infoHash: target.infoHash }, { tmp: tmp, tracker: true, trackers: target.trackers })
       _engines[name] = _engine
 
       var harakiri = function () {
@@ -270,7 +271,6 @@ module.exports = async function (src, dest, tmp) {
       _engine.once('ready', () => console.log('Swarm ready ' + name))
 
       _engine.on('download', index => {
-        console.log("download")
         const down = prettysize(_engine.swarm.downloaded)
         const downSpeed = prettysize(_engine.swarm.downloadSpeed()).replace('Bytes', 'b') + '/s'
 
