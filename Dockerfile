@@ -19,8 +19,8 @@ RUN npm install
 COPY . .
 
 # Set environment variables
-ENV BTFS_DEST=/media
-ENV BTFS_SRC=/torrents
+ENV BTFS_DEST=/media/fuse
+ENV BTFS_SRC=/torrents/fuse
 
 # Command to run the application
 CMD ["npm", "start"]
