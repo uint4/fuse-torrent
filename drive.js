@@ -190,7 +190,7 @@ module.exports = async function (src, dest, tmp) {
 
         if (!f.stream) {
           const f2 = findFromTorrent(filePath)
-          f.stream = f2.createReadStream({ start: offset })
+          f.stream = f2.createReadStream({ start: offset, end: offset + len })
           f.offset = offset
         }
 
