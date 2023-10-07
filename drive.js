@@ -207,7 +207,7 @@ module.exports = async function (src, dest, tmp) {
     }
   }
 
-  const opts = { force: true, mkdir: false, displayFolder: true, debug: true, allowOther: true }
+  const opts = { force: true, mkdir: false, displayFolder: true, debug: false, allowOther: true }
   const fuse = new Fuse(dest, handlers, opts)
   fuse.mount(function (err) {
     console.log("fuse errors:", err)
