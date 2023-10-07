@@ -14,7 +14,7 @@
   "version": "0.2.3",
   "private": false,
   "scripts": {
-    "autofix": "standard --fix"
+    "start": "node index.js"
   },
   "bin": {
     "fuse-torrent": "./index.js"
