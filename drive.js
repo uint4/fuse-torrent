@@ -255,13 +255,11 @@ module.exports = async function (src, dest, tmp) {
       var interval = setInterval(harakiri, 6000)
 
       _engine.on('uninterested', function () {
-        console.log("uninterested")
         uninterestedAt = new Date()
         _engine.swarm.pause()
       })
 
       _engine.on('interested', function () {
-        console.log("interested")
         uninterestedAt = null
         if (_engine.swarm) {
           _engine.swarm.resume()
