@@ -1,65 +1,49 @@
-const prettysize = require('prettysize')
-const Fuse = require('fuse-native')
-const torrentStream = require('torrent-stream')
-const path = require('path')
-const fs = require('fs');
-const readTorrent = require('read-torrent')
-
-const dbFind = require('./db.js').dbFind
+import prettysize from 'prettysize'
+import Fuse from 'fuse-native'
+import path from 'path'
+import fs from 'fs'
+import WebTorrent from 'webtorrent'
 
 const ENOENT = Fuse.ENOENT
 const ZERO = 0
 
-module.exports = async function (src, dest, tmp) {
+const main = async function (src, dest, tmp) {
+  
   const ctime = new Date()
   const mtime = new Date()
   let uninterestedAt = null
 
+  const client = new WebTorrent()
+
   let items = []
   let sourceFiles = []
   let categories = []
-  let torrents = new Map()
   const files = {}
 
   async function refreshFiles () {
     let newTorrents = fs.readdirSync(src, { recursive: true })
-
-    // Remove deleted torrents
-    items.forEach(function (item) {
-      if (!newTorrents.includes(item)) {
-        delete item
-      }
-    })
-
     newTorrents.map(function (torrentFile) {
       if (items.filter((torrent) => torrent.file == torrentFile).length == 0) {
-        readTorrent(path.join(src, torrentFile), function (err, torrent, raw) {
-          if (err) {
-            console.error(err.message)
-            process.exit(2)
-          }
-          const ts = torrentStream(raw)
-          ts.on('ready', async function () {
-            const files = ts.files.map((file) => {
+        client.add(path.join(src, torrentFile), function (torrent) {
+          torrent.on('ready', async function () {
+            const files = torrent.files.map((file) => {
               return { path: file.path, length: file.length }
             })
             console.log('New Files:')
             files.forEach(file => console.log(file))
             const metadata = JSON.stringify({ files: files })
-  
             let category = null
             let split_torrent = torrentFile.split('/')
             if (split_torrent.length == 2) {
               category = split_torrent[0]
             }
-      
+
             const doc = {
               file: torrentFile,
-              torrentFile: ts.metadata.toString('base64'),
-              name: ts.torrent.name,
+              name: torrent.name,
               infoHash: torrent.infoHash,
-              metadata: metadata,
-              category: category,
+              metadata,
+              category,
               trackers: torrent.announce,
             }
 
@@ -234,7 +218,7 @@ module.exports = async function (src, dest, tmp) {
         return term === name
       })
 
-      let _engine = torrentStream({ infoHash: target.infoHash }, { tmp: tmp, tracker: true, trackers: target.trackers })
+      let _engine = client.add(target.infoHash, { tracker: true, trackers: target.trackers })
       _engines[name] = _engine
 
       var harakiri = function () {
@@ -312,3 +296,5 @@ module.exports = async function (src, dest, tmp) {
     })
   })
 }
+
+export default main;
