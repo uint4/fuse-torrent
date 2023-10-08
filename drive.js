@@ -21,41 +21,49 @@ const main = async function (src, dest, tmp) {
   const files = {}
 
   async function refreshFiles () {
+    // Refresh the source directory
     let newTorrents = fs.readdirSync(src, { recursive: true })
+
+    // Configure new torrents
     newTorrents.map(function (torrentFile) {
-      if (items.filter((torrent) => torrent.file == torrentFile).length == 0) {
+      if (items.filter((torrent) => torrent.file === torrentFile).length == 0) {
+        console.log("New Torrent Detected:", torrentFile)
+        // Send the torrent to the download engine
         client.add(path.join(src, torrentFile), function (torrent) {
-          torrent.on('ready', async function () {
-            const files = torrent.files.map((file) => {
-              return { path: file.path, length: file.length }
-            })
-            console.log('New Files:')
-            files.forEach(file => console.log(file))
-            const metadata = JSON.stringify({ files: files })
-            let category = null
-            let split_torrent = torrentFile.split('/')
-            if (split_torrent.length == 2) {
-              category = split_torrent[0]
-            }
-
-            const doc = {
-              file: torrentFile,
-              name: torrent.name,
-              infoHash: torrent.infoHash,
-              metadata,
-              category,
-              trackers: torrent.announce,
-            }
-
-            items.push(doc)
+          // Get a handle to the files in the torrent client
+          const files = torrent.files.map((file) => {
+            return { path: file.path, length: file.length }
           })
+          // Convert the files handles to raw names to emulate using FUSE
+          const metadata = JSON.stringify({ files: files })
+
+          // Get the torrent category, if any
+          let category = null
+          let split_torrent = torrentFile.split('/')
+          if (split_torrent.length == 2) {
+            category = split_torrent[0]
+          }
+
+          // Store neccessary information about the torrent in `items`
+          const doc = {
+            file: torrentFile,
+            name: torrent.name,
+            infoHash: torrent.infoHash,
+            metadata,
+            category,
+            trackers: torrent.announce,
+          }
+          items.push(doc)
         })
       }
     })
 
+    // Refresh all of the torrent categories
     categories = Array.from(new Set(
       items.filter(function (item) { return item.category }).map(function (item) { return item.category })
     ))
+
+    // Update the source files from the metadata of each item
     const newSourceFiles = []
     items.forEach(function (item) {
       const itemFiles = JSON.parse(item.metadata).files
@@ -69,6 +77,7 @@ const main = async function (src, dest, tmp) {
     sourceFiles = newSourceFiles
   }
 
+  // Refresh the filesystem every 5 seconds
   await refreshFiles()
   setInterval(refreshFiles, 5000)
 
