@@ -6,8 +6,11 @@ RUN apk update -U
 RUN apk add fuse python3
 RUN sed -i 's/#user_allow_other/user_allow_other/' /etc/fuse.conf
 
+# Make the directory
+RUN mkdir /usr/local/app
+
 # Set the working directory in the container
-WORKDIR /usr/src/app
+WORKDIR /usr/local/app
 
 # Copy package.json and package-lock.json (if available)
 COPY package*.json ./
